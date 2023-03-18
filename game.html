@@ -34,9 +34,9 @@
 
         function largeNumberFormat(num) {
             if (num >= 1e16) {
-                return Math.floor(num / 1e9) + "q";
+                return Math.floor(num / 1e15) + "q";
             } else if (num >= 1e13) {
-                return Math.floor(num / 1e9) + "t";
+                return Math.floor(num / 1e12) + "t";
             } else if (num >= 1e10) {
                 return Math.floor(num / 1e9) + "b";
             } else if (num >= 1e7) {
