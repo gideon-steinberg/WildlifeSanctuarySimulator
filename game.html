@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .animal-card {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .animal-button {
+            display: block;
+            margin-top: 5px;
+        }
+        .buy-button-enabled {
+            background-color: lightgreen;
+        }
+    </style>
+    <script>
+        const animalList = ['Mouse', 'Rat', 'Ferret', 'Weasel', 'Marmot', 'Groundhog', 'Beaver', 'Porcupine', 'Antelope', 'Deer', 'Elk', 'Giraffe', 'Rhino', 'Elephant', 'Blue Whale'];
+        const animalBaseCost = 10;
+        const animalBaseGeneration = 1;
+        const costMultiplier = 9.6;
+        const generationMultiplier = 7.45;
+        const displayThreshold = 0.2;
+        let habitatTokens = 0;
+        let ownedAnimals = new Array(animalList.length).fill(0);
+        ownedAnimals[0] = 1; // Start with a Mouse
+        let reachedThreshold = new Array(animalList.length).fill(false);
+        reachedThreshold[0] = true;
+        let animalCosts = animalList.map((_, index) => Math.floor(animalBaseCost * Math.pow(costMultiplier, index)));
+
+        function largeNumberFormat(num) {
+            if (num >= 1e16) {
+                return Math.floor(num / 1e9) + "q";
+            if (num >= 1e13) {
+                return Math.floor(num / 1e9) + "t";
+            if (num >= 1e10) {
+                return Math.floor(num / 1e9) + "b";
+            } else if (num >= 1e7) {
+                return Math.floor(num / 1e6) + "m";
+            } else if (num >= 1e4) {
+                return Math.floor(num / 1e3) + "k";
+            } else {
+                return Math.floor(num);
+            }
+        }
+
+        function updateHabitatTokensDisplay() {
+            document.getElementById('habitat-tokens').innerText = largeNumberFormat(habitatTokens);
+        }
+
+        function generateHabitatTokens() {
+            let tokensGenerated = 0;
+            for (let i = 0; i < ownedAnimals.length; i++) {
+                tokensGenerated += ownedAnimals[i] * Math.floor(animalBaseGeneration * Math.pow(generationMultiplier, i));
+            }
+            habitatTokens += tokensGenerated;
+            updateHabitatTokensDisplay();
+            updateBuyButtons();
+        }
+
+        function buyAnimal(index, amount = 1) {
+            for (let i = 0; i < amount; i++) {
+                const cost = animalCosts[index];
+                if (habitatTokens >= cost) {
+                    habitatTokens -= cost;
+                    ownedAnimals[index] += 1;
+                    animalCosts[index] = Math.floor(animalCosts[index] * 1.1);
+                } else {
+                    break;
+                }
+            }
+            updateHabitatTokensDisplay();
+            updateAnimalCardDisplay(index);
+        }
+
+        function updateBuyButtons() {
+            for (let i = 0; i < animalList.length; i++) {
+                const buyButton = document.getElementById(`buy-${i}`);
+                const buy5Button = document.getElementById(`buy5-${i}`);
+                if (habitatTokens >= animalCosts[i]) {
+                    buyButton.classList.add('buy-button-enabled');
+                } else {
+                    buyButton.classList.remove('buy-button-enabled');
+                }
+                if (habitatTokens >= animalCosts[i] * 5) {
+                    buy5Button.classList.add('buy-button-enabled');
+                } else {
+                    buy5Button.classList.remove('buy-button-enabled');
+                }
+            }
+        }
+
+        function updateAnimalCardDisplay(index) {
+            const generation = Math.floor(animalBaseGeneration * Math.pow(generationMultiplier, index));
+            document.getElementById(`cost-${index}`).innerText = largeNumberFormat(animalCosts[index]);
+            document.getElementById(`owned-${index}`).innerText = ownedAnimals[index];
+            document.getElementById(`total-generation-${index}`).innerText = largeNumberFormat(ownedAnimals[index] * generation);
+            document.getElementById(`each-generation-${index}`).innerText = largeNumberFormat(generation);
+        }
+
+        function createAnimalCards() {
+            const container = document.getElementById('animal-container');
+            for (let i = 0; i < animalList.length; i++) {
+                const cost = animalCosts[i];
+                const generation = animalBaseGeneration * Math.pow(generationMultiplier, i);
+                const card = document.createElement('div');
+                card.className = 'animal-card';
+                card.id = `animal-${i}`;
+                card.innerHTML = `
+                    <h2>${animalList[i]}</h2>
+                    <p>Cost: <span id="cost-${i}">${largeNumberFormat(cost)}</span></p>
+                    <p>Owned: <span id="owned-${i}">${ownedAnimals[i]}</span></p>
+                    <p>Total Generation: <span id="total-generation-${i}">${largeNumberFormat(ownedAnimals[i] * generation)}</span> per time step</p>
+                    <p>Each ${animalList[i] Generates: <span id="each-generation-${i}">${largeNumberFormat(generation)}</span></p>
+                    <button class="animal-button" id="buy-${i}">Buy ${animalList[i]}</button>
+                    <button class="animal-button" id="buy5-${i}">Buy 5 ${animalList[i]}s</button>
+                `;
+                container.appendChild(card);
+            }
+        }
+
+        function showHideAnimalCards() {
+            let unlockedAnimals = 0;
+            for (let i = 1; i < animalList.length; i++) {
+                const card = document.getElementById(`animal-${i}`);
+                const cost = animalCosts[i];
+                if (habitatTokens >= cost * displayThreshold) {
+                    reachedThreshold[i] = true;
+                }
+                if (reachedThreshold[i]) {
+                    card.style.display = 'inline-block';
+                    unlockedAnimals++;
+                } else {
+                    card.style.display = 'none';
+                }
+            }
+            document.getElementById('unlocked-animals').innerText = unlockedAnimals;
+        }
+
+        function setupEventListeners() {
+            for (let i = 0; i < animalList.length; i++) {
+                document.getElementById(`buy-${i}`).addEventListener('click', () => buyAnimal(i));
+                document.getElementById(`buy5-${i}`).addEventListener('click', () => buyAnimal(i, 5));
+            }
+        }
+
+        function gameLoop() {
+            generateHabitatTokens();
+            showHideAnimalCards();
+            setTimeout(gameLoop, 250);
+        }
+
+        window.onload = () => {
+            createAnimalCards();
+            setupEventListeners();
+            updateHabitatTokensDisplay();
+            gameLoop();
+        };
+    </script>
+</head>
+<body>
+    <h1>Wildlife Sanctuary Simulator - Made by GPT-4</h1>
+    <p>Habitat Tokens: <span id="habitat-tokens">0</span></p>
+    <p>Animal types you have unlocked: <span id="unlocked-animals">0</span></p>
+    <div id="animal-container">
+    </div>
+</body>
+</html>
